@@ -11,6 +11,8 @@ class QuotesSpider(scrapy.Spider):
         l = ItemLoader(QuotesDataclassesItem(), response=response)
         l.add_xpath('txt', "//*[@class='text']/text()")
         l.add_xpath('author', "//*[@class='author']/text()")
-        l.add_xpath('tags', "//*[@clss='tag']/text()")
+        # tag = g
+
+        l.add_xpath('tags', "//*[@class='tag']/text()")
 
         return l.load_item()
