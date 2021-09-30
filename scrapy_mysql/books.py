@@ -3,7 +3,7 @@ from scrapy.http import Request
 import os
 import glob
 import csv
-import MySQLdb
+import mysql.connector
 
 def product_info(response, value):
     return response.xpath("//th[text()='"+value+"']/following-sibling::td/text()").get()
@@ -30,23 +30,30 @@ class BooksSpider(scrapy.Spider):
                'Upc': upc,
                'Product_Type': product_type}
 
+    # from csv to database
     def close(self, reason):
         csv_file = max(glob.iglob('*.csv'), key=os.path.getctime)
-        print(csv_file)
         
-        mydb = MySQLdb.connect(host='localhost',
-                               user='root',
-                               passwd='helloworld',
-                               database='books_db')
-
+        mydb = mysql.connector.connect(host='localhost',
+                                       user='root',
+                                       passwd='foo',
+                                       database='books_db')
         cursor = mydb.cursor()
-        csv_data = csv.reader(csv_file)
-
+        cursor.execute('''DROP TABLE IF EXISTS books_table''')
+        cursor.execute('''CREATE TABLE books_table(
+                       title TEXT,
+                       ratings TEXT,
+                       upc TEXT,
+                       product_type TEXT)''')
         row_count = 0
-        for row in csv_data:
-            if row_count != 0:
-                cursor.execute("INSERT IGNORE INTO books_table(Title, Ratings, Upc, Product_Type) VALUES(%s, %s, %s, %s)", row)
-            row_count += 1 
-
+        with open(csv_file, newline='') as f:
+            csv_data = csv.reader(f)
+            for row in csv_data:
+                if row_count != 0:
+                    cursor.execute('''INSERT INTO books_table VALUES(%s, %s, %s, %s)''',
+                                   (row[0],
+                                    row[1],
+                                    row[2],
+                                    row[3]))
+                row_count += 1
         mydb.commit()
-        cursor.close()
